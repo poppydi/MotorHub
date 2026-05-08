@@ -1,0 +1,26 @@
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">МоторХаб</a>
+
+    <nav class="main-nav" aria-label="Навигация">
+      <a href="/parts" class="<%= typeof currentPath !== 'undefined' && currentPath === '/parts' ? 'active' : '' %>">Запчасти</a>
+      <a href="/oils" class="<%= typeof currentPath !== 'undefined' && currentPath === '/oils' ? 'active' : '' %>">Масла</a>
+      <a href="/about" class="<%= typeof currentPath !== 'undefined' && currentPath === '/about' ? 'active' : '' %>">О нас</a>
+      <a href="/cart" class="cart-link <%= typeof currentPath !== 'undefined' && currentPath === '/cart' ? 'active' : '' %>">
+        Корзина <span class="cart-count"><%= typeof cartCount !== 'undefined' ? cartCount : 0 %></span>
+      </a>
+      <a href="/account" class="<%= typeof currentPath !== 'undefined' && currentPath === '/account' ? 'active' : '' %>">Кабинет</a>
+      <% if (typeof isStaff !== 'undefined' && isStaff) { %><a href="/admin" class="<%= typeof currentPath !== 'undefined' && currentPath === '/admin' ? 'active' : '' %>">Админ</a><% } %>
+    </nav>
+
+    <div class="header-right">
+      <% if (typeof userId !== 'undefined' && userId) { %>
+        <form action="/logout" method="post" style="margin:0;">
+          <button type="submit" class="btn">Выйти</button>
+        </form>
+      <% } else { %>
+        <a href="/login" class="btn">Войти</a>
+      <% } %>
+    </div>
+  </div>
+</header>

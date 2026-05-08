@@ -1,0 +1,77 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content">
+  <p class="section-label">Главная</p>
+
+  <section class="hero-grid">
+    <div>
+      <h1 class="page-title">Запчасти и масла,<br>которые приятно<br>покупать</h1>
+      <p class="page-subtitle">Современный каталог, прозрачные характеристики</p>
+
+      <div class="hero-actions">
+        <a href="/parts" class="btn btn-solid">Смотреть запчасти</a>
+        <a href="/oils" class="btn btn-solid">Выбрать масло</a>
+      </div>
+
+      <div class="chip-row">
+        <span class="chip">Большой выбор</span>
+        <span class="chip">Удобный каталог</span>
+        <span class="chip">Импортные масла</span>
+      </div>
+    </div>
+
+    <div class="catalog-card catalog-card-tilt" id="catalogCard">
+      <span class="badge">Новое</span>
+      <div class="catalog-title">Каталог MotorHub</div>
+      <div class="catalog-preview-grid">
+        <% const feats = (typeof products !== 'undefined' && products && products.length) ? products.slice(0, 8) : []; %>
+        <% if (feats.length) { %>
+          <% feats.forEach(function(p) { %>
+            <a href="<%= p.categorySlug === 'oils' ? '/oils' : '/parts' %>#p<%= p.id %>" class="catalog-preview-item">
+              <% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>"><% } else { %><span class="no-img">—</span><% } %>
+            </a>
+          <% }); %>
+        <% } else { %>
+          <% for (let i = 0; i < 8; i++) { %><div class="catalog-preview-item skeleton"></div><% } %>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="section-title">Категории</h2>
+  <section class="categories-grid">
+    <div class="category-card">
+      <h3>Автозапчасти</h3>
+      <p>Свечи, фильтры, тормоза, ремни, датчики</p>
+      <a href="/parts">Открыть</a>
+    </div>
+    <div class="category-card">
+      <h3>Моторные масла</h3>
+      <p>Подбор по вязкости, допускам и типу базы</p>
+      <a href="/oils">Открыть</a>
+    </div>
+    <div class="category-card">
+      <h3>Каталог</h3>
+      <p>Удобный каталог с фильтром</p>
+      <a href="/parts">Открыть</a>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<script>
+(function(){
+  var card=document.getElementById('catalogCard');
+  if(!card)return;
+  card.addEventListener('mousemove',function(e){
+    var rect=card.getBoundingClientRect();
+    var x=(e.clientX-rect.left)/rect.width-.5;
+    var y=(e.clientY-rect.top)/rect.height-.5;
+    var rx=Math.max(-12,Math.min(12,y*24));
+    var ry=Math.max(-12,Math.min(12,-x*24));
+    card.style.transform='perspective(1000px) rotateX('+rx+'deg) rotateY('+ry+'deg) scale3d(1.02,1.02,1.02)';
+  });
+  card.addEventListener('mouseleave',function(){
+    card.style.transform='';
+  });
+})();
+</script>

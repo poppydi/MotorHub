@@ -1,0 +1,135 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/cart', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content">
+  <section class="catalog-panel content-panel cart-panel">
+    <h1 class="page-title">Корзина</h1>
+    <% if (items && items.length) { %>
+      <div class="cart-grid">
+        <div class="cart-left">
+          <% items.forEach(function(it) { %>
+            <div class="cart-row">
+              <div class="cart-img">
+                <% if (it.imageUrl) { %><img src="<%= it.imageUrl %>" alt="<%= it.name %>"><% } else { %><span class="no-img">—</span><% } %>
+              </div>
+              <div>
+                <div class="cart-name"><%= it.name %></div>
+                <% if (it.articleNumber) { %><div class="cart-meta">Арт. <%= it.articleNumber %></div><% } %>
+              </div>
+              <form action="/cart/update" method="post" class="qty-form">
+                <input type="hidden" name="productId" value="<%= it.productId %>">
+                <div class="qty">
+                  <button type="submit" name="quantity" value="<%= Math.max(1, it.quantity - 1) %>">−</button>
+                  <span><%= it.quantity %></span>
+                  <button type="submit" name="quantity" value="<%= Math.min(it.stock, it.quantity + 1) %>">+</button>
+                </div>
+              </form>
+              <div class="cart-price"><%= it.sum %></div>
+              <form action="/cart/remove" method="post" class="remove-form">
+                <input type="hidden" name="productId" value="<%= it.productId %>">
+                <button type="submit" class="cart-remove" title="Удалить">×</button>
+              </form>
+            </div>
+          <% }); %>
+        </div>
+        <div class="cart-right">
+          <h3 class="summary-title">Итого</h3>
+          <div class="summary-lines">
+            <div class="line">Товары <span><%= subtotal %></span></div>
+            <div class="line">Доставка <span><%= delivery %></span></div>
+            <div class="line total">Всего <span><%= total %></span></div>
+          </div>
+          <form action="/cart/checkout" method="post" class="checkout-form" id="checkoutForm">
+            <input type="hidden" name="recipient_name" id="recipientNameInput">
+            <input type="hidden" name="phone" id="phoneInput">
+            <button type="button" class="btn btn-solid btn-block" id="openCheckoutModal">Оформить заказ</button>
+          </form>
+        </div>
+      </div>
+    <% } else { %>
+      <p class="cart-empty">Корзина пуста. <a href="/parts">Перейти к каталогу</a></p>
+    <% } %>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<% if (items && items.length) { %>
+<div class="modal-overlay" id="checkoutModal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" id="checkoutCloseBtn">×</button>
+    <h3>Подтверждение заказа</h3>
+    <div class="checkout-list">
+      <% items.forEach(function(it) { %>
+        <div class="checkout-item"><span><%= it.name %> x <%= it.quantity %></span><strong><%= it.sum %></strong></div>
+      <% }); %>
+    </div>
+    <div class="checkout-fields">
+      <label>Имя получателя
+        <input type="text" id="checkoutName" value="<%= user ? user.name : '' %>" placeholder="Введите имя" required>
+      </label>
+      <label>Номер телефона
+        <input type="text" id="checkoutPhone" value="<%= user ? user.phone : '' %>" placeholder="+7..." required>
+      </label>
+    </div>
+    <div class="checkout-summary">
+      <p>Номер заказа: <strong>будет присвоен после подтверждения</strong></p>
+      <p>Дата и время: <strong id="previewDateTime"></strong></p>
+      <p>Самовывоз: Советская, д. 76</p>
+      <p>Забрать заказ можно с 08:00 до 19:00</p>
+    </div>
+    <button type="button" class="btn btn-solid btn-block" id="confirmCheckoutBtn">Подтвердить заказ</button>
+  </div>
+</div>
+<% } %>
+<% if (lastOrderId) { %>
+<div class="modal-overlay" id="orderSuccessModal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" id="orderSuccessCloseBtn">×</button>
+    <h3>Ваш заказ оформлен</h3>
+    <p>Номер заказа: <strong><%= lastOrderId %></strong></p>
+    <p>Дата и время: <strong><%= lastOrderAt || new Date().toLocaleString('ru-RU') %></strong></p>
+    <p>Самовывоз: Оренбургская область, с. Сакмара, ул. Советская, д. 76</p>
+    <p>Забрать заказ можно с 08:00 до 19:00</p>
+    <a class="btn btn-sm" href="/account?order=<%= lastOrderId %>">Посмотреть заказ в кабинете</a>
+  </div>
+</div>
+<% } %>
+<script>
+(function () {
+  var openBtn = document.getElementById('openCheckoutModal');
+  var modal = document.getElementById('checkoutModal');
+  if (openBtn && modal) {
+    var closeBtn = document.getElementById('checkoutCloseBtn');
+    var confirmBtn = document.getElementById('confirmCheckoutBtn');
+    var nameInput = document.getElementById('checkoutName');
+    var phoneLocalInput = document.getElementById('checkoutPhone');
+    var nameHiddenInput = document.getElementById('recipientNameInput');
+    var phoneHiddenInput = document.getElementById('phoneInput');
+    var previewDateTime = document.getElementById('previewDateTime');
+    var checkoutForm = document.getElementById('checkoutForm');
+    openBtn.addEventListener('click', function () {
+      previewDateTime.textContent = new Date().toLocaleString('ru-RU');
+      modal.hidden = false;
+    });
+    closeBtn.addEventListener('click', function () { modal.hidden = true; });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) modal.hidden = true;
+    });
+    confirmBtn.addEventListener('click', function () {
+      if (!nameInput.value.trim() || !phoneLocalInput.value.trim()) return;
+      nameHiddenInput.value = nameInput.value.trim();
+      phoneHiddenInput.value = phoneLocalInput.value.trim();
+      checkoutForm.submit();
+    });
+  }
+  var successModal = document.getElementById('orderSuccessModal');
+  if (successModal) {
+    var successClose = document.getElementById('orderSuccessCloseBtn');
+    successModal.hidden = false;
+    if (successClose) {
+      successClose.addEventListener('click', function () { successModal.hidden = true; });
+    }
+    successModal.addEventListener('click', function (e) {
+      if (e.target === successModal) successModal.hidden = true;
+    });
+  }
+})();
+</script>

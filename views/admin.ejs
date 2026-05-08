@@ -1,0 +1,147 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/admin', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content admin-main">
+  <aside class="admin-sidebar">
+    <h3>Админ-панель</h3>
+    <nav class="admin-nav">
+      <a href="#users" class="admin-nav-link">Пользователи</a>
+      <a href="#products" class="admin-nav-link">Товары</a>
+      <a href="#orders" class="admin-nav-link">Заказы</a>
+    </nav>
+  </aside>
+  <div class="admin-content">
+    <section id="users" class="admin-section">
+      <h2>Пользователи</h2>
+      <form action="/admin/users" method="post" class="admin-form">
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Пароль" required>
+        <input type="text" name="name" placeholder="Имя" required>
+        <input type="text" name="surname" placeholder="Фамилия">
+        <select name="role">
+          <option value="customer">Покупатель</option>
+          <option value="manager">Менеджер</option>
+          <option value="admin">Админ</option>
+        </select>
+        <button type="submit" class="btn btn-solid">Добавить</button>
+      </form>
+      <table class="admin-table">
+        <thead>
+          <tr><th>ID</th><th>Email</th><th>Имя</th><th>Роль</th><th>Действия</th></tr>
+        </thead>
+        <tbody>
+          <% if (users && users.length) { %>
+            <% users.forEach(function(u) { %>
+              <tr>
+                <td><%= u.id %></td>
+                <td><%= u.email %></td>
+                <td><%= u.name %> <%= u.surname %></td>
+                <td>
+                  <form action="/admin/users/<%= u.id %>/role" method="post" class="inline-form">
+                    <select name="role" onchange="this.form.submit()">
+                      <option value="customer" <%= u.role === 'customer' ? 'selected' : '' %>>Покупатель</option>
+                      <option value="manager" <%= u.role === 'manager' ? 'selected' : '' %>>Менеджер</option>
+                      <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Админ</option>
+                    </select>
+                  </form>
+                </td>
+                <td>
+                  <% if (u.id !== userId) { %>
+                    <form action="/admin/users/<%= u.id %>/delete" method="post" class="inline-form">
+                      <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr><td colspan="5">Нет пользователей</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+    <section id="products" class="admin-section">
+      <h2>Товары</h2>
+      <form action="/admin/products" method="post" enctype="multipart/form-data" class="admin-form admin-product-form">
+        <select name="category_id" required>
+          <% if (categories && categories.length) { %>
+            <% categories.forEach(function(c) { %>
+              <option value="<%= c.id %>"><%= c.name %></option>
+            <% }); %>
+          <% } %>
+        </select>
+        <input type="text" name="name" placeholder="Название" required>
+        <input type="text" name="article_number" placeholder="Артикул">
+        <input type="number" name="price" placeholder="Цена (₽)" required step="0.01" min="0">
+        <input type="number" name="stock" placeholder="Остаток" value="0" min="0">
+        <textarea name="description" placeholder="Краткое описание товара" rows="2"></textarea>
+        <input type="text" name="image_url" placeholder="Ссылка на фото">
+        <label class="file-label"><span>Фото (файл)</span><input type="file" name="image" accept="image/*"></label>
+        <label><input type="checkbox" name="is_new"> Новинка</label>
+        <button type="submit" class="btn btn-solid">Добавить</button>
+      </form>
+      <table class="admin-table">
+        <thead>
+          <tr><th>ID</th><th>Фото</th><th>Название</th><th>Артикул</th><th>Цена</th><th>Остаток</th><th>Действия</th></tr>
+        </thead>
+        <tbody>
+          <% if (products && products.length) { %>
+            <% products.forEach(function(p) { %>
+              <tr>
+                <td><%= p.id %></td>
+                <td class="admin-thumb"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt=""><% } else { %><span class="no-img">—</span><% } %></td>
+                <td><%= p.name %></td>
+                <td><%= p.articleNumber || '' %></td>
+                <td><%= p.price %></td>
+                <td><%= p.stock %></td>
+                <td class="admin-actions">
+                  <a href="/admin/products/edit/<%= p.id %>" class="btn btn-sm">Изменить</a>
+                  <form action="/admin/products/<%= p.id %>/delete" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr><td colspan="7">Нет товаров</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+    <section id="orders" class="admin-section">
+      <h2>Заказы</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>ID</th><th>Клиент</th><th>Email</th><th>Статус</th><th>Сумма</th><th>Дата</th><th>Действия</th></tr>
+        </thead>
+        <tbody>
+          <% if (orders && orders.length) { %>
+            <% orders.forEach(function(o) { %>
+              <tr>
+                <td><%= o.id %></td>
+                <td><%= o.userName %></td>
+                <td><%= o.userEmail %></td>
+                <td>
+                  <form action="/admin/orders/<%= o.id %>/status" method="post" class="inline-form">
+                    <select name="status" onchange="this.form.submit()">
+                      <option value="new" <%= o.status === 'new' ? 'selected' : '' %>>Новый</option>
+                      <option value="confirmed" <%= o.status === 'confirmed' ? 'selected' : '' %>>Сборка</option>
+                      <option value="shipped" <%= o.status === 'shipped' ? 'selected' : '' %>>Готов к выдаче</option>
+                      <option value="delivered" <%= o.status === 'delivered' ? 'selected' : '' %>>Выдан</option>
+                      <option value="cancelled" <%= o.status === 'cancelled' ? 'selected' : '' %>>Отменён</option>
+                    </select>
+                  </form>
+                </td>
+                <td><%= o.total %></td>
+                <td><%= new Date(o.createdAt).toLocaleDateString('ru-RU') %></td>
+                <td>—</td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr><td colspan="7">Нет заказов</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>

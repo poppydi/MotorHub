@@ -1,0 +1,157 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/oils', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content">
+  <section class="catalog-panel content-panel">
+    <h1 class="page-title">Масла</h1>
+    <form class="search-filters" method="get" action="/oils">
+      <input type="text" name="search" placeholder="5W-30" value="<%= typeof search !== 'undefined' ? search : '' %>" class="search-input">
+      <select name="sort" class="sort-select">
+        <option value="name" <%= (typeof sort !== 'undefined' && sort === 'name') ? 'selected' : '' %>>По названию</option>
+        <option value="price_asc" <%= (typeof sort !== 'undefined' && sort === 'price_asc') ? 'selected' : '' %>>Сначала дешевле</option>
+        <option value="price_desc" <%= (typeof sort !== 'undefined' && sort === 'price_desc') ? 'selected' : '' %>>Сначала дороже</option>
+      </select>
+      <button type="submit" class="btn btn-solid">Найти</button>
+    </form>
+    <div class="product-grid">
+      <% if (products && products.length) { %>
+        <% products.forEach(function(p) { %>
+          <article class="product-card" id="p<%= p.id %>">
+            <div class="product-image"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>"><% } else { %><span class="no-image">—</span><% } %></div>
+            <div class="product-info">
+              <h4><%= p.name %></h4>
+              <% if (p.articleNumber) { %><p class="product-article">Арт. <%= p.articleNumber %></p><% } %>
+              <p class="product-desc"><%= p.description %></p>
+              <p class="product-price"><%= p.price %></p>
+              <% if (p.stock > 0) { %>
+                <button
+                  type="button"
+                  class="btn btn-sm open-product-modal"
+                  data-product-id="<%= p.id %>">Подробнее</button>
+              <% } else { %>
+                <p class="out-of-stock">Нет в наличии</p>
+              <% } %>
+            </div>
+          </article>
+        <% }); %>
+      <% } else { %>
+        <p class="no-results">Товары не найдены</p>
+      <% } %>
+    </div>
+    <% if (faq && faq.length) { %>
+      <section class="faq-wrap">
+        <h2 class="faq-title">Что нужно знать автовладельцу</h2>
+        <div class="accordion">
+          <% faq.forEach(function(item, i) { %>
+            <div class="acc-item <%= i === 0 ? 'open' : '' %>">
+              <button type="button" class="acc-btn" data-accordion><span><%= item.question %></span></button>
+              <div class="acc-body"><%= item.answer %></div>
+            </div>
+          <% }); %>
+        </div>
+      </section>
+    <% } %>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<div class="modal-overlay" id="productModal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" id="modalCloseBtn">×</button>
+    <div class="modal-product">
+      <div class="modal-product-image" id="modalImageWrap"></div>
+      <div>
+        <h3 id="modalProductName"></h3>
+        <p class="modal-product-price" id="modalProductPrice"></p>
+        <p class="modal-product-desc" id="modalProductDescription"></p>
+        <p class="modal-product-stock">В наличии: <span id="modalProductStock"></span> шт.</p>
+        <form id="modalAddForm" class="modal-add-form">
+          <input type="hidden" name="productId" id="modalProductId">
+          <div class="qty">
+            <button type="button" id="modalQtyMinus">−</button>
+            <span id="modalQtyValue">1</span>
+            <button type="button" id="modalQtyPlus">+</button>
+          </div>
+          <button type="submit" class="btn btn-solid">В корзину</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var modal = document.getElementById('productModal');
+  if (!modal) return;
+  var modalName = document.getElementById('modalProductName');
+  var modalPrice = document.getElementById('modalProductPrice');
+  var modalDesc = document.getElementById('modalProductDescription');
+  var modalStock = document.getElementById('modalProductStock');
+  var modalImageWrap = document.getElementById('modalImageWrap');
+  var modalProductId = document.getElementById('modalProductId');
+  var qtyValue = document.getElementById('modalQtyValue');
+  var qtyMinus = document.getElementById('modalQtyMinus');
+  var qtyPlus = document.getElementById('modalQtyPlus');
+  var closeBtn = document.getElementById('modalCloseBtn');
+  var form = document.getElementById('modalAddForm');
+  var currentStock = 1;
+  function closeModal() { modal.hidden = true; }
+  function openModal(card) {
+    var d = card.dataset;
+    currentStock = Math.max(1, parseInt(d.productStock || '1', 10));
+    qtyValue.textContent = '1';
+    modalProductId.value = d.productId || '';
+    modalName.textContent = d.productName || '';
+    modalPrice.textContent = d.productPrice || '';
+    modalDesc.textContent = d.productDescription || 'Описание отсутствует';
+    modalStock.textContent = String(currentStock);
+    modalImageWrap.innerHTML = d.productImage ? '<img src="' + d.productImage + '" alt="' + (d.productName || '') + '">' : '<span class="no-image">—</span>';
+    modal.hidden = false;
+  }
+  var products = <%- JSON.stringify(products || []).replace(/</g, '\\u003c') %>;
+  var productsById = {};
+  products.forEach(function (p) {
+    productsById[String(p.id)] = p;
+  });
+  document.querySelectorAll('.open-product-modal').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var p = productsById[String(btn.dataset.productId || '')];
+      if (!p) return;
+      openModal({
+        dataset: {
+          productId: p.id,
+          productName: p.name || '',
+          productDescription: p.description || '',
+          productImage: p.imageUrl || '',
+          productPrice: p.price || '',
+          productStock: p.stock || 0
+        }
+      });
+    });
+  });
+  qtyMinus.addEventListener('click', function () {
+    var n = Math.max(1, parseInt(qtyValue.textContent || '1', 10) - 1);
+    qtyValue.textContent = String(n);
+  });
+  qtyPlus.addEventListener('click', function () {
+    var n = Math.min(currentStock, parseInt(qtyValue.textContent || '1', 10) + 1);
+    qtyValue.textContent = String(n);
+  });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    fetch('/cart/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+      body: new URLSearchParams({ productId: modalProductId.value, quantity: qtyValue.textContent })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var badge = document.querySelector('.cart-count');
+        if (badge && data && typeof data.cartCount !== 'undefined') badge.textContent = data.cartCount;
+        closeModal();
+      })
+      .catch(function () { closeModal(); });
+  });
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+})();
+</script>

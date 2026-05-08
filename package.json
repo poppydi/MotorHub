@@ -1,0 +1,27 @@
+{
+  "name": "autonix",
+  "version": "1.0.0",
+  "description": "МоторХаб — розничная продажа автозапчастей и моторного масла",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "init-db": "node db/init.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.6.0",
+    "cookie-parser": "^1.4.6",
+    "ejs": "^3.1.10",
+    "express": "^4.22.1",
+    "express-session": "^1.19.0",
+    "helmet": "^7.1.0",
+    "method-override": "^3.0.0",
+    "multer": "^2.1.1",
+    "sqlite3": "^6.0.1"
+  }
+}

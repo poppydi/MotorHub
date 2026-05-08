@@ -1,0 +1,100 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/account', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<%
+  const getOrderStatusLabel = (typeof orderStatusLabel === 'function')
+    ? orderStatusLabel
+    : function(status) {
+        return ({
+          new: 'Новый',
+          confirmed: 'Сборка',
+          shipped: 'Готов к выдаче',
+          delivered: 'Выдан',
+          cancelled: 'Отменён'
+        })[status] || status || 'Неизвестно';
+      };
+  const getOrderStatusStep = (typeof orderStatusStep === 'function')
+    ? orderStatusStep
+    : function(status) {
+        if (status === 'new') return 1;
+        if (status === 'confirmed') return 2;
+        if (status === 'shipped') return 3;
+        if (status === 'delivered') return 4;
+        return 0;
+      };
+%>
+<main class="main-content">
+  <section class="catalog-panel content-panel account-panel">
+    <h1 class="page-title">Личный кабинет</h1>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <p class="success-msg">Профиль обновлён</p>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <p class="auth-error"><%= error %></p>
+    <% } %>
+    <div class="account-sections">
+      <section class="account-profile">
+        <h2>Профиль</h2>
+        <form action="/account" method="post" class="account-form">
+          <label>Email</label>
+          <input type="text" value="<%= user.email %>" disabled>
+          <label>Имя</label>
+          <input type="text" name="name" value="<%= user.name %>" required>
+          <label>Фамилия</label>
+          <input type="text" name="surname" value="<%= user.surname || '' %>">
+          <label>Телефон</label>
+          <input type="text" name="phone" value="<%= user.phone || '' %>">
+          <label>Автомобиль</label>
+          <input type="text" name="car" value="<%= user.car || '' %>">
+          <button type="submit" class="btn btn-solid">Сохранить</button>
+        </form>
+      </section>
+      <section class="account-orders">
+        <h2>Мои заказы</h2>
+        <% if (orders && orders.length) { %>
+          <ul class="orders-list">
+            <% orders.forEach(function(o) { %>
+              <li class="order-item">
+                <a href="/account?order=<%= o.id %>">Заказ #<%= o.id %></a>
+                <span class="order-status"><%= getOrderStatusLabel(o.status) %></span>
+                <span class="order-total"><%= o.total %></span>
+                <span class="order-date"><%= new Date(o.createdAt).toLocaleDateString('ru-RU') %></span>
+              </li>
+            <% }); %>
+          </ul>
+          <% if (selectedOrder) { %>
+            <div class="account-order-details">
+              <h3>Заказ #<%= selectedOrder.id %></h3>
+              <p class="order-date">Дата: <%= new Date(selectedOrder.createdAt).toLocaleString('ru-RU') %></p>
+              <p class="order-date">Статус: <strong><%= getOrderStatusLabel(selectedOrder.status) %></strong></p>
+              <div class="order-track">
+                <div class="order-track-fill" style="width:<%= (getOrderStatusStep(selectedOrder.status) / 4) * 100 %>%"></div>
+              </div>
+              <div class="order-track-labels">
+                <span>Новый</span>
+                <span>Сборка</span>
+                <span>Готов к выдаче</span>
+                <span>Выдан</span>
+              </div>
+              <div class="account-order-items">
+                <% selectedOrder.items.forEach(function(it) { %>
+                  <div class="account-order-item">
+                    <span><%= it.productName %> x <%= it.quantity %></span>
+                    <strong><%= (it.quantity * it.priceCents / 100).toLocaleString('ru-RU') %> ₽</strong>
+                  </div>
+                <% }); %>
+              </div>
+              <div class="summary-lines">
+                <div class="line">Товары <span><%= selectedOrder.subtotal %></span></div>
+                <div class="line">Доставка <span><%= selectedOrder.delivery %></span></div>
+                <div class="line total">Всего <span><%= selectedOrder.total %></span></div>
+              </div>
+            </div>
+          <% } %>
+        <% } else { %>
+          <p>Заказов пока нет</p>
+        <% } %>
+      </section>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>

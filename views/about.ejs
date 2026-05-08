@@ -1,0 +1,41 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/about', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content">
+  <section class="catalog-panel content-panel">
+    <h1 class="page-title">О нас</h1>
+    <p class="page-subtitle">МоторХаб - магазин автозапчастей и масел с быстрым самовывозом в Сакмаре.</p>
+    <div class="about-grid">
+      <div class="about-card about-card-info">
+        <h3>Контакты и режим</h3>
+        <div class="about-lines">
+          <p><strong>Адрес:</strong> Оренбургская область, с. Сакмара, ул. Советская, д. 76</p>
+          <p><strong>Выдача заказов:</strong> ежедневно с 08:00 до 19:00</p>
+          <p><strong>Телефон:</strong> +7 (987) 654-32-10</p>
+          <p><strong>Email:</strong> info@motorhub.local</p>
+        </div>
+        <div class="about-actions">
+          <a class="btn btn-sm" target="_blank" rel="noopener noreferrer" href="https://yandex.ru/maps/?rtext=~51.781102,55.344896&rtt=auto">Построить маршрут</a>
+          <a class="btn btn-sm" href="/parts">Перейти в каталог</a>
+        </div>
+        <div class="about-badges">
+          <span class="chip">Самовывоз в день заказа</span>
+          <span class="chip">Проверка совместимости</span>
+          <span class="chip">Консультация менеджера</span>
+        </div>
+      </div>
+      <div class="about-card about-card-map">
+        <h3>Карта</h3>
+        <div class="map-wrap">
+          <iframe
+            title="Карта МоторХаб"
+            src="https://yandex.ru/map-widget/v1/?ll=55.344896%2C51.781102&z=15&pt=55.344896,51.781102,pm2rdm"
+            width="100%"
+            height="360"
+            frameborder="0"
+            allowfullscreen="true"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>

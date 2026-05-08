@@ -1,0 +1,45 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { currentPath: '/admin', categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content">
+  <section class="catalog-panel content-panel" style="max-width:640px">
+    <h1 class="page-title">Изменить товар</h1>
+    <% if (typeof product !== 'undefined' && product) { %>
+      <form action="/admin/products/<%= product.id %>" method="post" enctype="multipart/form-data" class="admin-form admin-product-form" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <label style="grid-column:1/-1">Категория</label>
+        <select name="category_id" required style="grid-column:1/-1">
+          <% if (categories && categories.length) { %>
+            <% categories.forEach(function(c) { %>
+              <option value="<%= c.id %>" <%= c.id === product.categoryId ? 'selected' : '' %>><%= c.name %></option>
+            <% }); %>
+          <% } %>
+        </select>
+        <label>Название</label>
+        <label>Артикул</label>
+        <input type="text" name="name" value="<%= product.name %>" required>
+        <input type="text" name="article_number" value="<%= product.articleNumber || '' %>">
+        <label>Цена (₽)</label>
+        <label>Остаток</label>
+        <input type="number" name="price" value="<%= (product.priceCents / 100).toFixed(2) %>" required step="0.01" min="0">
+        <input type="number" name="stock" value="<%= product.stock %>" min="0">
+        <label style="grid-column:1/-1">Описание</label>
+        <textarea name="description" rows="3" style="grid-column:1/-1"><%= product.description || '' %></textarea>
+        <label style="grid-column:1/-1">Ссылка на фото (или загрузите файл)</label>
+        <input type="text" name="image_url" value="<%= product.imageUrl || '' %>" placeholder="https://..." style="grid-column:1/-1">
+        <label class="file-label" style="grid-column:1/-1"><span>Загрузить новое фото</span><input type="file" name="image" accept="image/*"></label>
+        <% if (product.imageUrl) { %>
+          <div style="grid-column:1/-1">
+            <span>Текущее фото:</span>
+            <img src="<%= product.imageUrl %>" alt="" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:8px">
+          </div>
+        <% } %>
+        <label style="grid-column:1/-1"><input type="checkbox" name="is_new" <%= product.isNew ? 'checked' : '' %>> Новинка</label>
+        <button type="submit" class="btn btn-solid" style="grid-column:1/-1">Сохранить</button>
+      </form>
+      <p style="margin-top:16px"><a href="/admin#products" class="btn">← Назад к списку</a></p>
+    <% } else { %>
+      <p>Товар не найден.</p>
+      <a href="/admin#products" class="btn">Назад</a>
+    <% } %>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>

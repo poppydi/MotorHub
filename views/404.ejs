@@ -1,0 +1,10 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { categories: [] }) %>
+<main class="main-content">
+  <section class="content-panel">
+    <h1>404</h1>
+    <p><%= typeof message !== 'undefined' ? message : 'Страница не найдена' %></p>
+    <a href="/" class="btn btn-primary">На главную</a>
+  </section>
+</main>
+<%- include('partials/footer', { categories: [] }) %>

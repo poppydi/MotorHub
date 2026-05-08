@@ -1,0 +1,47 @@
+<%- include('partials/head') %>
+<%- include('partials/header', { categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<main class="main-content">
+  <section class="content-panel auth-panel">
+    <h1>Вход / Регистрация</h1>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" data-tab="login">Вход</button>
+      <button type="button" class="auth-tab" data-tab="register">Регистрация</button>
+    </div>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <p class="auth-error"><%= error %></p>
+    <% } %>
+    <div class="auth-form-wrap" id="login-form">
+      <form action="/login<%= typeof redirect !== 'undefined' && redirect ? '?redirect=' + encodeURIComponent(redirect) : '' %>" method="post" class="auth-form">
+        <label>Email</label>
+        <input type="email" name="email" required>
+        <label>Пароль</label>
+        <input type="password" name="password" required>
+        <button type="submit" class="btn btn-solid">Войти</button>
+      </form>
+    </div>
+    <div class="auth-form-wrap hidden" id="register-form">
+      <form action="/register" method="post" class="auth-form">
+        <label>Email</label>
+        <input type="email" name="email" required>
+        <label>Пароль (мин. 6 символов)</label>
+        <input type="password" name="password" required minlength="6">
+        <label>Имя</label>
+        <input type="text" name="name" required>
+        <label>Фамилия</label>
+        <input type="text" name="surname">
+        <button type="submit" class="btn btn-solid">Зарегистрироваться</button>
+      </form>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer', { categories: typeof categories !== 'undefined' ? categories : [] }) %>
+<script>
+  document.querySelectorAll('.auth-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.auth-form-wrap').forEach(function(f) { f.classList.add('hidden'); });
+      this.classList.add('active');
+      document.getElementById(this.dataset.tab + '-form').classList.remove('hidden');
+    });
+  });
+</script>
