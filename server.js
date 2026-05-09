@@ -30,6 +30,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 const app = express();
+app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -51,7 +52,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'autonix-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
+  proxy: true,
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  }
 }));
 
 app.use((req, res, next) => {
@@ -434,4 +441,6 @@ app.post('/admin/orders/:id/status', requireAuth, requireStaff, (req, res) => {
 app.use((req, res) => res.status(404).render('404', { message: 'Страница не найдена' }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('МоторХаб server on http://localhost:' + PORT));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`МоторХаб server running on port ${PORT}`);
+});
