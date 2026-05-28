@@ -37,9 +37,7 @@
         <div class="cart-right">
           <h3 class="summary-title">Итого</h3>
           <div class="summary-lines">
-            <div class="line">Товары <span><%= subtotal %></span></div>
-            <div class="line">Доставка <span><%= delivery %></span></div>
-            <div class="line total">Всего <span><%= total %></span></div>
+            <div class="line total">Итого <span><%= total %></span></div>
           </div>
           <form action="/cart/checkout" method="post" class="checkout-form" id="checkoutForm">
             <input type="hidden" name="recipient_name" id="recipientNameInput">

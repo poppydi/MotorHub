@@ -55,7 +55,7 @@
             <% orders.forEach(function(o) { %>
               <li class="order-item">
                 <a href="/account?order=<%= o.id %>">Заказ #<%= o.id %></a>
-                <span class="order-status"><%= getOrderStatusLabel(o.status) %></span>
+                <span class="order-status<%= o.status === 'shipped' ? ' order-status-ready' : '' %>"><%= getOrderStatusLabel(o.status) %></span>
                 <span class="order-total"><%= o.total %></span>
                 <span class="order-date"><%= new Date(o.createdAt).toLocaleDateString('ru-RU') %></span>
               </li>
@@ -65,14 +65,14 @@
             <div class="account-order-details">
               <h3>Заказ #<%= selectedOrder.id %></h3>
               <p class="order-date">Дата: <%= new Date(selectedOrder.createdAt).toLocaleString('ru-RU') %></p>
-              <p class="order-date">Статус: <strong><%= getOrderStatusLabel(selectedOrder.status) %></strong></p>
+              <p class="order-date">Статус: <strong class="order-status-text<%= selectedOrder.status === 'shipped' ? ' order-status-ready' : '' %>"><%= getOrderStatusLabel(selectedOrder.status) %></strong></p>
               <div class="order-track">
                 <div class="order-track-fill" style="width:<%= (getOrderStatusStep(selectedOrder.status) / 4) * 100 %>%"></div>
               </div>
               <div class="order-track-labels">
                 <span>Новый</span>
                 <span>Сборка</span>
-                <span>Готов к выдаче</span>
+                <span class="<%= selectedOrder.status === 'shipped' ? 'order-track-label-ready' : '' %>">Готов к выдаче</span>
                 <span>Выдан</span>
               </div>
               <div class="account-order-items">
@@ -84,9 +84,7 @@
                 <% }); %>
               </div>
               <div class="summary-lines">
-                <div class="line">Товары <span><%= selectedOrder.subtotal %></span></div>
-                <div class="line">Доставка <span><%= selectedOrder.delivery %></span></div>
-                <div class="line total">Всего <span><%= selectedOrder.total %></span></div>
+                <div class="line total">Итого <span><%= selectedOrder.subtotal %></span></div>
               </div>
             </div>
           <% } %>

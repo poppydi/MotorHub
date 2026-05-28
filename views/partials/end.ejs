@@ -1,4 +1,17 @@
+<button type="button" class="scroll-top" id="scrollTopBtn" aria-label="Наверх" title="Наверх" hidden>↑</button>
 <script>
+(function () {
+  var btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  function toggleBtn() {
+    btn.hidden = window.scrollY < 320;
+  }
+  toggleBtn();
+  window.addEventListener('scroll', toggleBtn, { passive: true });
+  btn.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
 document.querySelectorAll('.sort-select[data-current-sort]').forEach(function(sel) {
   var current = sel.getAttribute('data-current-sort');
   if (current) sel.value = current;

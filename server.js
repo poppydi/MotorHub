@@ -167,12 +167,12 @@ app.get('/oils', (req, res) => {
 
 app.get('/cart', (req, res) => {
   const { items, subtotalCents, subtotal } = getCartWithProducts(req);
-  const deliveryCents = subtotalCents >= 500000 ? 0 : 50000;
-  const totalCents = subtotalCents + deliveryCents;
+  const deliveryCents = 0;
+  const totalCents = subtotalCents;
   const categories = getCategories();
   const user = req.session?.userId ? getUserById(req.session.userId) : null;
   res.render('cart', {
-    items, subtotal, subtotalCents, delivery: formatPrice(deliveryCents), deliveryCents, total: formatPrice(totalCents), totalCents, categories,
+    items, subtotal, subtotalCents, total: formatPrice(totalCents), totalCents, categories,
     user,
     lastOrderId: clampInt(req.query.order, 0, 999999999),
     lastOrderAt: req.query.at ? String(req.query.at) : '',
@@ -342,8 +342,8 @@ app.post('/cart/checkout', requireAuth, (req, res) => {
       deliveryAddress: user?.deliveryAddress || ''
     });
   }
-  const deliveryCents = subtotalCents >= 500000 ? 0 : 50000;
-  const totalCents = subtotalCents + deliveryCents;
+  const deliveryCents = 0;
+  const totalCents = subtotalCents;
   let orderId;
   try {
     orderId = fulfillOrder({
