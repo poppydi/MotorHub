@@ -24,7 +24,12 @@ function getProducts(filters = {}) {
     const term = '%' + String(search).trim() + '%';
     params.push(term, term, term);
   }
-  sql += ' ORDER BY ' + (sort === 'price_asc' ? 'p.price_cents ASC' : sort === 'price_desc' ? 'p.price_cents DESC' : 'p.name ASC');
+  sql += ' ORDER BY ' + (
+    sort === 'price_asc' ? 'p.price_cents ASC'
+      : sort === 'price_desc' ? 'p.price_cents DESC'
+        : sort === 'id_desc' ? 'p.id DESC'
+          : 'p.name ASC'
+  );
   const rows = getDb().prepare(sql).all(...params);
   return rows.map(p => ({
     id: p.id, categoryId: p.category_id, categoryName: p.category_name, categorySlug: p.category_slug,
@@ -45,7 +50,44 @@ function getFaq(section) {
 }
 
 function getUsers() {
-  return getDb().prepare('SELECT id, email, name, surname, phone, car, delivery_address, role, created_at FROM users ORDER BY id').all();
+  return getDb().prepare('SELECT id, email, name, surname, phone, car, delivery_address, role, created_at FROM users ORDER BY id DESC').all();
+}
+
+function getAdminProducts() {
+  const rows = getDb().prepare(`
+    SELECT p.id, p.category_id, p.name, p.description, p.article_number, p.price_cents, p.stock, p.image_url, p.is_new,
+           c.name AS category_name, c.slug AS category_slug
+    FROM products p
+    JOIN categories c ON p.category_id = c.id
+    ORDER BY p.id DESC
+  `).all();
+  return rows.map(p => ({
+    id: p.id, categoryId: p.category_id, categoryName: p.category_name, categorySlug: p.category_slug,
+    name: p.name, description: (p.description || '').trim() || getDefaultProductDescription(p.category_slug),
+    articleNumber: p.article_number || '', priceCents: p.price_cents, price: formatPrice(p.price_cents),
+    stock: p.stock, imageUrl: p.image_url || '', isNew: !!p.is_new,
+  }));
+}
+
+function getAdminUsers() {
+  return getDb().prepare(`
+    SELECT id, email, name, surname, phone, car, delivery_address, role, created_at
+    FROM users
+    ORDER BY id DESC
+  `).all();
+}
+
+function getAdminOrders() {
+  const rows = getDb().prepare(`
+    SELECT o.id, o.user_id, o.status, o.total_cents, o.created_at, u.name AS user_name, u.email
+    FROM orders o
+    JOIN users u ON o.user_id = u.id
+    ORDER BY o.id DESC
+  `).all();
+  return rows.map(o => ({
+    id: o.id, userId: o.user_id, userName: o.user_name, userEmail: o.email, status: o.status,
+    totalCents: o.total_cents, total: formatPrice(o.total_cents), createdAt: o.created_at,
+  }));
 }
 
 function getUserById(id) {
@@ -67,12 +109,13 @@ function getOrderWithItems(orderId, userId = null) {
 }
 
 function getAllOrders() {
-  const rows = getDb().prepare('SELECT o.id, o.user_id, o.status, o.total_cents, o.created_at, u.name AS user_name, u.email FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC').all();
+  const rows = getDb().prepare('SELECT o.id, o.user_id, o.status, o.total_cents, o.created_at, u.name AS user_name, u.email FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.id DESC').all();
   return rows.map(o => ({ id: o.id, userId: o.user_id, userName: o.user_name, userEmail: o.email, status: o.status, totalCents: o.total_cents, total: formatPrice(o.total_cents), createdAt: o.created_at }));
 }
 
 function getUserByEmail(email) {
-  return getDb().prepare('SELECT id, email, password_hash, name, surname, phone, car, delivery_address, role FROM users WHERE email = ?').get(email);
+  const normalized = String(email || '').trim().toLowerCase();
+  return getDb().prepare('SELECT id, email, password_hash, name, surname, phone, car, delivery_address, role FROM users WHERE LOWER(email) = ?').get(normalized);
 }
 
 function createUser(data) {
@@ -90,6 +133,10 @@ function updateUser(id, data) {
 
 function updateUserRole(id, role) {
   getDb().prepare('UPDATE users SET role = ?, updated_at = datetime(\'now\') WHERE id = ?').run(role, id);
+}
+
+function updateUserPassword(id, passwordHash) {
+  getDb().prepare('UPDATE users SET password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?').run(passwordHash, id);
 }
 
 function deleteUser(id) {
@@ -124,14 +171,57 @@ function createOrderItem(orderId, productId, quantity, priceCents) {
   getDb().prepare('INSERT INTO order_items (order_id, product_id, quantity, price_cents) VALUES (?, ?, ?, ?)').run(orderId, productId, quantity, priceCents);
 }
 
+/** Создаёт заказ и списывает остаток со склада (одна транзакция). */
+function fulfillOrder(orderData, items) {
+  const db = getDb();
+  const run = db.transaction((data, lineItems) => {
+    for (const it of lineItems) {
+      const row = db.prepare('SELECT stock FROM products WHERE id = ?').get(it.productId);
+      if (!row || row.stock < it.quantity) {
+        const err = new Error('Недостаточно товара на складе');
+        err.code = 'STOCK';
+        throw err;
+      }
+    }
+    const r = db.prepare(
+      'INSERT INTO orders (user_id, status, subtotal_cents, delivery_cents, total_cents, delivery_address, promo_code, bonus_card) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(data.userId, data.status || 'new', data.subtotalCents, data.deliveryCents || 0, data.totalCents, data.deliveryAddress || '', data.promoCode || '', data.bonusCard || '');
+    const orderId = r.lastInsertRowid;
+    const insertItem = db.prepare('INSERT INTO order_items (order_id, product_id, quantity, price_cents) VALUES (?, ?, ?, ?)');
+    const decStock = db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?');
+    for (const it of lineItems) {
+      insertItem.run(orderId, it.productId, it.quantity, it.priceCents);
+      decStock.run(it.quantity, it.productId);
+    }
+    return orderId;
+  });
+  return run(orderData, items);
+}
+
 function updateOrderStatus(id, status) {
   getDb().prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
+}
+
+function deleteOrder(id) {
+  const db = getDb();
+  const run = db.transaction((orderId) => {
+    const items = db.prepare('SELECT product_id, quantity FROM order_items WHERE order_id = ?').all(orderId);
+    const restore = db.prepare('UPDATE products SET stock = stock + ? WHERE id = ?');
+    for (const it of items) {
+      restore.run(it.quantity, it.product_id);
+    }
+    db.prepare('DELETE FROM orders WHERE id = ?').run(orderId);
+  });
+  run(id);
 }
 
 module.exports = {
   formatPrice, getCategories, getProducts, getProductById, getFaq,
   getUsers, getUserById, getUserByEmail, getOrdersByUserId, getOrderWithItems, getAllOrders,
-  createUser, updateUser, updateUserRole, deleteUser,
+  getAdminProducts, getAdminUsers, getAdminOrders,
+  createUser, updateUser, updateUserPassword, updateUserRole, deleteUser,
   insertProduct, updateProduct, deleteProduct,
-  createOrder, createOrderItem, updateOrderStatus,
+  createOrder, createOrderItem, fulfillOrder, updateOrderStatus, deleteOrder,
 };
+
+

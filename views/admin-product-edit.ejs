@@ -4,7 +4,7 @@
   <section class="catalog-panel content-panel" style="max-width:640px">
     <h1 class="page-title">Изменить товар</h1>
     <% if (typeof product !== 'undefined' && product) { %>
-      <form action="/admin/products/<%= product.id %>" method="post" enctype="multipart/form-data" class="admin-form admin-product-form" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <form action="/admin/products/<%= product.id %>" method="post" enctype="multipart/form-data" class="admin-form admin-product-form admin-edit-form">
         <label style="grid-column:1/-1">Категория</label>
         <select name="category_id" required style="grid-column:1/-1">
           <% if (categories && categories.length) { %>

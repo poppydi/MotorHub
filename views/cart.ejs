@@ -3,6 +3,9 @@
 <main class="main-content">
   <section class="catalog-panel content-panel cart-panel">
     <h1 class="page-title">Корзина</h1>
+    <% if (typeof cartError !== 'undefined' && cartError) { %>
+      <p class="auth-error"><%= cartError %></p>
+    <% } %>
     <% if (items && items.length) { %>
       <div class="cart-grid">
         <div class="cart-left">

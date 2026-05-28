@@ -1,20 +1,22 @@
 <%- include('partials/head') %>
 <%- include('partials/header', { currentPath: '/oils', categories: typeof categories !== 'undefined' ? categories : [] }) %>
 <main class="main-content">
-  <section class="catalog-panel content-panel">
+  <section class="catalog-panel catalog-page content-panel">
     <h1 class="page-title">Масла</h1>
     <form class="search-filters" method="get" action="/oils">
+      <input type="hidden" name="page" value="1">
       <input type="text" name="search" placeholder="5W-30" value="<%= typeof search !== 'undefined' ? search : '' %>" class="search-input">
       <select name="sort" class="sort-select">
-        <option value="name" <%= (typeof sort !== 'undefined' && sort === 'name') ? 'selected' : '' %>>По названию</option>
-        <option value="price_asc" <%= (typeof sort !== 'undefined' && sort === 'price_asc') ? 'selected' : '' %>>Сначала дешевле</option>
-        <option value="price_desc" <%= (typeof sort !== 'undefined' && sort === 'price_desc') ? 'selected' : '' %>>Сначала дороже</option>
+        <option value="newest" <%= (typeof sort === 'undefined' || sort === 'newest') ? 'selected' : '' %>>Сначала новые</option>
+        <option value="name" <%= (typeof sort === 'name') ? 'selected' : '' %>>По названию</option>
+        <option value="price_asc" <%= (typeof sort === 'price_asc') ? 'selected' : '' %>>Сначала дешевле</option>
+        <option value="price_desc" <%= (typeof sort === 'price_desc') ? 'selected' : '' %>>Сначала дороже</option>
       </select>
       <button type="submit" class="btn btn-solid">Найти</button>
     </form>
     <div class="product-grid">
       <% if (products && products.length) { %>
-        <% products.forEach(function(p) { %>
+        <% products.slice(0, 9).forEach(function(p) { %>
           <article class="product-card" id="p<%= p.id %>">
             <div class="product-image"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>"><% } else { %><span class="no-image">—</span><% } %></div>
             <div class="product-info">
@@ -22,6 +24,7 @@
               <% if (p.articleNumber) { %><p class="product-article">Арт. <%= p.articleNumber %></p><% } %>
               <p class="product-desc"><%= p.description %></p>
               <p class="product-price"><%= p.price %></p>
+              <p class="product-stock-label"><%= p.stock > 0 ? ('В наличии: ' + p.stock + ' шт.') : 'Нет в наличии' %></p>
               <% if (p.stock > 0) { %>
                 <button
                   type="button"
@@ -37,12 +40,13 @@
         <p class="no-results">Товары не найдены</p>
       <% } %>
     </div>
+    <%- include('partials/catalog-pagination', { page, totalPages, basePath, queryPrefix }) %>
     <% if (faq && faq.length) { %>
       <section class="faq-wrap">
         <h2 class="faq-title">Что нужно знать автовладельцу</h2>
         <div class="accordion">
           <% faq.forEach(function(item, i) { %>
-            <div class="acc-item <%= i === 0 ? 'open' : '' %>">
+            <div class="acc-item">
               <button type="button" class="acc-btn" data-accordion><span><%= item.question %></span></button>
               <div class="acc-body"><%= item.answer %></div>
             </div>
@@ -105,7 +109,7 @@
     modalImageWrap.innerHTML = d.productImage ? '<img src="' + d.productImage + '" alt="' + (d.productName || '') + '">' : '<span class="no-image">—</span>';
     modal.hidden = false;
   }
-  var products = <%- JSON.stringify(products || []).replace(/</g, '\\u003c') %>;
+  var products = <%- JSON.stringify(typeof allProducts !== 'undefined' ? allProducts : (products || [])).replace(/</g, '\\u003c') %>;
   var productsById = {};
   products.forEach(function (p) {
     productsById[String(p.id)] = p;

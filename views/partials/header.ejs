@@ -2,7 +2,11 @@
   <div class="header-inner">
     <a href="/" class="logo">МоторХаб</a>
 
-    <nav class="main-nav" aria-label="Навигация">
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="Меню" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="main-nav" id="mainNav" aria-label="Навигация">
       <a href="/parts" class="<%= typeof currentPath !== 'undefined' && currentPath === '/parts' ? 'active' : '' %>">Запчасти</a>
       <a href="/oils" class="<%= typeof currentPath !== 'undefined' && currentPath === '/oils' ? 'active' : '' %>">Масла</a>
       <a href="/about" class="<%= typeof currentPath !== 'undefined' && currentPath === '/about' ? 'active' : '' %>">О нас</a>
@@ -24,3 +28,22 @@
     </div>
   </div>
 </header>
+<script>
+(function(){
+  var btn=document.getElementById('navToggle');
+  var nav=document.getElementById('mainNav');
+  if(!btn||!nav)return;
+  btn.addEventListener('click',function(){
+    var open=nav.classList.toggle('open');
+    btn.classList.toggle('open',open);
+    btn.setAttribute('aria-expanded',open?'true':'false');
+  });
+  nav.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click',function(){
+      nav.classList.remove('open');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded','false');
+    });
+  });
+})();
+</script>

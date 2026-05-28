@@ -11,13 +11,15 @@ const { initDb, getDb } = require('./db');
 const {
   getCategories, getProducts, getProductById, getFaq,
   getUsers, getUserById, getUserByEmail, getOrdersByUserId, getOrderWithItems, getAllOrders,
-  createUser, updateUser, updateUserRole, deleteUser,
+  getAdminProducts, getAdminUsers, getAdminOrders,
+  createUser, updateUser, updateUserPassword, updateUserRole, deleteUser,
   insertProduct, updateProduct, deleteProduct,
-  createOrder, createOrderItem, updateOrderStatus,
+  createOrder, createOrderItem, fulfillOrder, updateOrderStatus, deleteOrder,
   formatPrice,
 } = require('./db/queries');
 const { hashPassword, comparePassword, requireAuth, requireRole, requireStaff } = require('./lib/auth');
 const { LIMITS, clampStr, clampInt } = require('./lib/validation');
+const { paginateCatalog, CATALOG_PER_PAGE } = require('./lib/catalog');
 
 initDb();
 
@@ -42,6 +44,22 @@ const ORDER_STATUS_LABELS = {
   cancelled: 'Отменён'
 };
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function redirectAfterAuth(req, res, user) {
+  let target = clampStr(req.body.redirect || req.query.redirect || '', 256);
+  if (!target || !target.startsWith('/')) {
+    const role = user.role || getDb().prepare('SELECT role FROM users WHERE id = ?').get(user.id)?.role;
+    target = (role === 'admin' || role === 'manager') ? '/admin' : '/account';
+  }
+  req.session.save((err) => {
+    if (err) {
+      return res.render('login', { error: 'Ошибка сессии, попробуйте снова', success: null, categories: getCategories(), redirect: target });
+    }
+    res.redirect(target);
+  });
+}
+
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -54,7 +72,7 @@ app.use(session({
   saveUninitialized: false,
   proxy: true,
   cookie: {
-    secure: true,
+    secure: isProduction,
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
@@ -110,22 +128,41 @@ app.get('/', (req, res) => {
   res.render('index', { categories, products });
 });
 
-app.get('/parts', (req, res) => {
+function renderCatalogPage(req, res, { categorySlug, template, faqSection }) {
   const categories = getCategories();
   const search = clampStr(req.query.search, LIMITS.search.max);
-  const sort = ['name', 'price_asc', 'price_desc'].includes(req.query.sort) ? req.query.sort : 'name';
-  const products = getProducts({ categorySlug: 'parts', search, sort });
-  const faq = getFaq('parts');
-  res.render('parts', { categories, products, faq, search, sort });
+  const sort = ['name', 'price_asc', 'price_desc', 'newest'].includes(req.query.sort) ? req.query.sort : 'newest';
+  const sortKey = sort === 'newest' ? 'id_desc' : sort;
+  const allProducts = getProducts({ categorySlug, search, sort: sortKey });
+  const paginated = paginateCatalog(allProducts, req.query.page);
+  const products = paginated.items.slice(0, CATALOG_PER_PAGE);
+  const { page, totalPages, total } = paginated;
+  const faq = getFaq(faqSection);
+  const qs = [];
+  if (search) qs.push('search=' + encodeURIComponent(search));
+  if (sort && sort !== 'name') qs.push('sort=' + encodeURIComponent(sort));
+  const queryPrefix = qs.length ? qs.join('&') + '&' : '';
+  res.render(template, {
+    categories,
+    products,
+    allProducts,
+    faq,
+    search,
+    sort,
+    page,
+    totalPages,
+    total,
+    basePath: categorySlug === 'parts' ? '/parts' : '/oils',
+    queryPrefix,
+  });
+}
+
+app.get('/parts', (req, res) => {
+  renderCatalogPage(req, res, { categorySlug: 'parts', template: 'parts', faqSection: 'parts' });
 });
 
 app.get('/oils', (req, res) => {
-  const categories = getCategories();
-  const search = clampStr(req.query.search, LIMITS.search.max);
-  const sort = ['name', 'price_asc', 'price_desc'].includes(req.query.sort) ? req.query.sort : 'name';
-  const products = getProducts({ categorySlug: 'oils', search, sort });
-  const faq = getFaq('oils');
-  res.render('oils', { categories, products, faq, search, sort });
+  renderCatalogPage(req, res, { categorySlug: 'oils', template: 'oils', faqSection: 'oils' });
 });
 
 app.get('/cart', (req, res) => {
@@ -138,12 +175,17 @@ app.get('/cart', (req, res) => {
     items, subtotal, subtotalCents, delivery: formatPrice(deliveryCents), deliveryCents, total: formatPrice(totalCents), totalCents, categories,
     user,
     lastOrderId: clampInt(req.query.order, 0, 999999999),
-    lastOrderAt: req.query.at ? String(req.query.at) : ''
+    lastOrderAt: req.query.at ? String(req.query.at) : '',
+    cartError: req.query.error === 'stock' ? 'Недостаточно товара на складе. Обновите корзину.' : null,
   });
 });
 
 app.get('/login', (req, res) => {
-  if (req.session?.userId) return res.redirect('/account');
+  if (req.session?.userId) {
+    const u = getDb().prepare('SELECT role FROM users WHERE id = ?').get(req.session.userId);
+    const dest = (u && (u.role === 'admin' || u.role === 'manager')) ? '/admin' : '/account';
+    return res.redirect(dest);
+  }
   const categories = getCategories();
   res.render('login', { error: null, success: null, redirect: req.query.redirect || '', categories });
 });
@@ -159,19 +201,19 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const email = clampStr(req.body.email, LIMITS.email.max);
+  const email = clampStr(req.body.email, LIMITS.email.max).toLowerCase();
   const password = req.body.password || '';
+  const redirect = clampStr(req.body.redirect || req.query.redirect || '', 256);
   if (!email || password.length < LIMITS.password.min) {
-    return res.render('login', { error: 'Неверный email или пароль', success: null, categories: getCategories() });
+    return res.render('login', { error: 'Неверный email или пароль', success: null, categories: getCategories(), redirect });
   }
   const user = getUserByEmail(email);
   if (!user || !comparePassword(password, user.password_hash)) {
-    return res.render('login', { error: 'Неверный email или пароль', success: null, categories: getCategories() });
+    return res.render('login', { error: 'Неверный email или пароль', success: null, categories: getCategories(), redirect });
   }
   req.session.userId = user.id;
   req.session.userName = user.name;
-  const redirect = req.query.redirect || '/';
-  res.redirect(redirect);
+  redirectAfterAuth(req, res, user);
 });
 
 app.post('/register', (req, res) => {
@@ -180,23 +222,24 @@ app.post('/register', (req, res) => {
   const name = clampStr(req.body.name, LIMITS.name.max);
   const surname = clampStr(req.body.surname, LIMITS.surname.max);
   const categories = getCategories();
+  const redirect = clampStr(req.body.redirect || req.query.redirect || '', 256);
   if (!email || email.length < LIMITS.email.min) {
-    return res.render('login', { error: 'Введите корректный email', success: null, categories });
+    return res.render('login', { error: 'Введите корректный email', success: null, categories, redirect });
   }
   if (password.length < LIMITS.password.min) {
-    return res.render('login', { error: 'Пароль должен быть не менее 6 символов', success: null, categories });
+    return res.render('login', { error: 'Пароль должен быть не менее 6 символов', success: null, categories, redirect });
   }
   if (!name) {
-    return res.render('login', { error: 'Введите имя', success: null, categories });
+    return res.render('login', { error: 'Введите имя', success: null, categories, redirect });
   }
   if (getUserByEmail(email)) {
-    return res.render('login', { error: 'Email уже зарегистрирован', success: null, categories });
+    return res.render('login', { error: 'Email уже зарегистрирован', success: null, categories, redirect });
   }
   createUser({ email, passwordHash: hashPassword(password), name, surname, role: 'customer' });
   const user = getUserByEmail(email);
   req.session.userId = user.id;
   req.session.userName = user.name;
-  res.redirect('/account');
+  redirectAfterAuth(req, res, user);
 });
 
 app.post('/logout', (req, res) => {
@@ -290,16 +333,19 @@ app.post('/cart/checkout', requireAuth, (req, res) => {
   }
   const deliveryCents = subtotalCents >= 500000 ? 0 : 50000;
   const totalCents = subtotalCents + deliveryCents;
-  const orderId = createOrder({
-    userId: req.session.userId,
-    status: 'new',
-    subtotalCents,
-    deliveryCents,
-    totalCents,
-    deliveryAddress: user.deliveryAddress || '',
-  });
-  for (const it of items) {
-    createOrderItem(orderId, it.productId, it.quantity, it.priceCents);
+  let orderId;
+  try {
+    orderId = fulfillOrder({
+      userId: req.session.userId,
+      status: 'new',
+      subtotalCents,
+      deliveryCents,
+      totalCents,
+      deliveryAddress: user.deliveryAddress || '',
+    }, items.map((it) => ({ productId: it.productId, quantity: it.quantity, priceCents: it.priceCents })));
+  } catch (err) {
+    if (err.code === 'STOCK') return res.redirect('/cart?error=stock');
+    throw err;
   }
   req.session.cart = [];
   res.redirect('/cart?order=' + orderId + '&at=' + encodeURIComponent(new Date().toLocaleString('ru-RU')));
@@ -345,11 +391,15 @@ app.get('/api/orders', requireAuth, (req, res) => {
 });
 
 app.get('/admin', requireAuth, requireStaff, (req, res) => {
-  const users = getUsers();
-  const products = getProducts();
-  const orders = getAllOrders();
+  const users = getAdminUsers();
+  const products = getAdminProducts();
+  const orders = getAdminOrders();
   const categories = getCategories();
-  res.render('admin', { users, products, orders, categories });
+  let flash = null;
+  if (req.query.success === 'password') flash = 'Пароль пользователя обновлён';
+  if (req.query.success === 'product') flash = 'Товар добавлен';
+  if (req.query.success === 'order_deleted') flash = 'Заказ удалён';
+  res.render('admin', { users, products, orders, categories, flash, adminError: req.query.error || null });
 });
 
 app.post('/admin/users', requireAuth, requireRole('admin'), (req, res) => {
@@ -379,6 +429,15 @@ app.post('/admin/users/:id/delete', requireAuth, requireRole('admin'), (req, res
   res.redirect('/admin');
 });
 
+app.post('/admin/users/:id/password', requireAuth, requireRole('admin'), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const password = req.body.password || '';
+  if (!id || !getUserById(id)) return res.redirect('/admin?error=user');
+  if (password.length < LIMITS.password.min) return res.redirect('/admin?error=password');
+  updateUserPassword(id, hashPassword(password));
+  res.redirect('/admin?success=password');
+});
+
 app.post('/admin/products', requireAuth, requireStaff, upload.single('image'), (req, res) => {
   const categoryId = parseInt(req.body.category_id, 10);
   const name = clampStr(req.body.name, LIMITS.productName.max);
@@ -393,7 +452,26 @@ app.post('/admin/products', requireAuth, requireStaff, upload.single('image'), (
   if (req.file) imageUrl = '/uploads/' + req.file.filename;
   if (!categoryId || !name || priceCents < 0) return res.redirect('/admin?error=product');
   insertProduct({ categoryId, name, description, articleNumber, priceCents, stock, imageUrl, isNew });
-  res.redirect('/admin');
+  res.redirect('/admin?success=product#products');
+});
+
+app.post('/admin/orders/:id/status', requireAuth, requireStaff, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const status = ['new', 'confirmed', 'shipped', 'delivered', 'cancelled'].includes(req.body.status) ? req.body.status : 'new';
+  if (id && getOrderWithItems(id)) updateOrderStatus(id, status);
+  res.redirect('/admin#orders');
+});
+
+app.post('/admin/delete-order/:id', requireAuth, requireStaff, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (id) {
+    try {
+      deleteOrder(id);
+    } catch (e) {
+      console.error('deleteOrder', e);
+    }
+  }
+  res.redirect('/admin?success=order_deleted');
 });
 
 app.post('/admin/products/:id', requireAuth, requireStaff, upload.single('image'), (req, res) => {
@@ -431,16 +509,9 @@ app.post('/admin/products/:id/delete', requireAuth, requireStaff, (req, res) => 
   res.redirect('/admin');
 });
 
-app.post('/admin/orders/:id/status', requireAuth, requireStaff, (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const status = ['new', 'confirmed', 'shipped', 'delivered', 'cancelled'].includes(req.body.status) ? req.body.status : 'new';
-  if (id && getOrderWithItems(id)) updateOrderStatus(id, status);
-  res.redirect('/admin');
-});
-
 app.use((req, res) => res.status(404).render('404', { message: 'Страница не найдена' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`МоторХаб server running on port ${PORT}`);
+  console.log(`МоторХаб: сервер запущен на http://localhost:${PORT}`);
 });

@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { initDb, getDb } = require('./index');
+const { seedCatalogProducts } = require('./seed-catalog');
 
 const db = initDb();
 
@@ -44,5 +45,8 @@ if (db.prepare('SELECT COUNT(*) AS n FROM faq').get().n === 0) {
     ('oils', 'Нужно ли промывать двигатель при переходе на другое масло?', 'При переходе внутри одного типа промывка не обязательна. При смене типа может быть полезна.', 4)
   `).run();
 }
+
+const { added } = seedCatalogProducts(db);
+if (added > 0) console.log(`Добавлено товаров в каталог: ${added}`);
 
 console.log('МоторХаб DB initialized. Admin: admin@autonix.local / admin123, Customer: darya@mail.ru / customer1');

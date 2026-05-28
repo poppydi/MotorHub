@@ -1,0 +1,11 @@
+<% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+  <nav class="catalog-pagination" aria-label="Страницы каталога">
+    <% if (page > 1) { %>
+      <a class="btn btn-sm" href="<%= basePath %>?<%= queryPrefix %>page=<%= page - 1 %>">← Назад</a>
+    <% } %>
+    <span class="catalog-pagination-info">Страница <%= page %> из <%= totalPages %></span>
+    <% if (page < totalPages) { %>
+      <a class="btn btn-sm" href="<%= basePath %>?<%= queryPrefix %>page=<%= page + 1 %>">Вперёд →</a>
+    <% } %>
+  </nav>
+<% } %>

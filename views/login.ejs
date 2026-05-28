@@ -12,6 +12,9 @@
     <% } %>
     <div class="auth-form-wrap" id="login-form">
       <form action="/login<%= typeof redirect !== 'undefined' && redirect ? '?redirect=' + encodeURIComponent(redirect) : '' %>" method="post" class="auth-form">
+        <% if (typeof redirect !== 'undefined' && redirect) { %>
+          <input type="hidden" name="redirect" value="<%= redirect %>">
+        <% } %>
         <label>Email</label>
         <input type="email" name="email" required>
         <label>Пароль</label>
