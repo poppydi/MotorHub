@@ -21,18 +21,20 @@
             <div class="product-image"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>"><% } else { %><span class="no-image">—</span><% } %></div>
             <div class="product-info">
               <h4><%= p.name %></h4>
-              <% if (p.articleNumber) { %><p class="product-article">Арт. <%= p.articleNumber %></p><% } %>
+              <p class="product-article"><%= p.articleNumber ? ('Арт. ' + p.articleNumber) : '\u00a0' %></p>
               <p class="product-desc"><%= p.description %></p>
               <p class="product-price"><%= p.price %></p>
               <p class="product-stock-label"><%= p.stock > 0 ? ('В наличии: ' + p.stock + ' шт.') : 'Нет в наличии' %></p>
-              <% if (p.stock > 0) { %>
-                <button
-                  type="button"
-                  class="btn btn-sm open-product-modal"
-                  data-product-id="<%= p.id %>">Подробнее</button>
-              <% } else { %>
-                <p class="out-of-stock">Нет в наличии</p>
-              <% } %>
+              <div class="product-card-actions">
+                <% if (p.stock > 0) { %>
+                  <button
+                    type="button"
+                    class="btn btn-sm open-product-modal"
+                    data-product-id="<%= p.id %>">Подробнее</button>
+                <% } else { %>
+                  <p class="out-of-stock">Нет в наличии</p>
+                <% } %>
+              </div>
             </div>
           </article>
         <% }); %>
