@@ -39,10 +39,10 @@
             <% if (users && users.length) { %>
               <% users.forEach(function(u) { %>
                 <tr>
-                  <td class="col-id"><%= u.id %></td>
-                  <td><%= u.email %></td>
-                  <td><%= u.name %> <%= u.surname %></td>
-                  <td>
+                  <td class="col-id" data-label="ID"><%= u.id %></td>
+                  <td data-label="Email"><%= u.email %></td>
+                  <td data-label="Имя"><%= u.name %> <%= u.surname %></td>
+                  <td data-label="Роль">
                     <form action="/admin/users/<%= u.id %>/role" method="post" class="inline-form">
                       <select name="role" onchange="this.form.submit()">
                         <option value="customer" <%= u.role === 'customer' ? 'selected' : '' %>>Покупатель</option>
@@ -51,13 +51,13 @@
                       </select>
                     </form>
                   </td>
-                  <td>
+                  <td data-label="Пароль">
                     <form action="/admin/users/<%= u.id %>/password" method="post" class="password-reset-form">
                       <input type="password" name="password" placeholder="Новый пароль" minlength="6" required class="input-reset">
                       <button type="submit" class="btn btn-sm">Сбросить</button>
                     </form>
                   </td>
-                  <td class="col-actions">
+                  <td class="col-actions" data-label="Действия">
                     <div class="admin-actions">
                     <% if (u.id !== userId) { %>
                       <form action="/admin/users/<%= u.id %>/delete" method="post" class="inline-form" onsubmit="return confirm('Удалить пользователя?');">
@@ -106,13 +106,13 @@
             <% if (products && products.length) { %>
               <% products.forEach(function(p) { %>
                 <tr>
-                  <td class="col-id"><%= p.id %></td>
-                  <td class="admin-thumb col-thumb"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt=""><% } else { %><span class="no-img">—</span><% } %></td>
-                  <td class="col-name"><%= p.name %></td>
-                  <td class="col-article"><%= p.articleNumber || '' %></td>
-                  <td class="col-price"><%= p.price %></td>
-                  <td class="col-stock"><%= p.stock %></td>
-                  <td class="col-actions">
+                  <td class="col-id" data-label="ID"><%= p.id %></td>
+                  <td class="admin-thumb col-thumb" data-label="Фото"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt=""><% } else { %><span class="no-img">—</span><% } %></td>
+                  <td class="col-name" data-label="Название"><%= p.name %></td>
+                  <td class="col-article" data-label="Артикул"><%= p.articleNumber || '' %></td>
+                  <td class="col-price" data-label="Цена"><%= p.price %></td>
+                  <td class="col-stock" data-label="Остаток"><%= p.stock %></td>
+                  <td class="col-actions" data-label="Действия">
                     <div class="admin-actions">
                       <a href="/admin/products/edit/<%= p.id %>" class="btn btn-sm">Изменить</a>
                       <form action="/admin/products/<%= p.id %>/delete" method="post" class="inline-form" onsubmit="return confirm('Удалить товар?');">
@@ -140,10 +140,10 @@
             <% if (orders && orders.length) { %>
               <% orders.forEach(function(o) { %>
                 <tr>
-                  <td class="col-id"><%= o.id %></td>
-                  <td><%= o.userName %></td>
-                  <td><%= o.userEmail %></td>
-                  <td>
+                  <td class="col-id" data-label="ID"><%= o.id %></td>
+                  <td data-label="Клиент"><%= o.userName %></td>
+                  <td data-label="Email"><%= o.userEmail %></td>
+                  <td data-label="Статус">
                     <form action="/admin/orders/<%= o.id %>/status" method="post" class="inline-form">
                       <select name="status" onchange="this.form.submit()">
                         <option value="new" <%= o.status === 'new' ? 'selected' : '' %>>Новый</option>
@@ -154,9 +154,9 @@
                       </select>
                     </form>
                   </td>
-                  <td><%= o.total %></td>
-                  <td><%= new Date(o.createdAt).toLocaleDateString('ru-RU') %></td>
-                  <td class="col-actions">
+                  <td data-label="Сумма"><%= o.total %></td>
+                  <td data-label="Дата"><%= new Date(o.createdAt).toLocaleDateString('ru-RU') %></td>
+                  <td class="col-actions" data-label="Действия">
                     <div class="admin-actions">
                       <form action="/admin/delete-order/<%= o.id %>" method="post" class="inline-form" onsubmit="return confirm('Удалить заказ №<%= o.id %>?');">
                         <button type="submit" class="btn btn-sm btn-danger">Удалить</button>

@@ -42,7 +42,7 @@
           <label>Фамилия</label>
           <input type="text" name="surname" value="<%= user.surname || '' %>">
           <label>Телефон</label>
-          <input type="text" name="phone" value="<%= user.phone || '' %>">
+          <input type="tel" name="phone" value="<%= user.phone || '' %>" maxlength="18" inputmode="tel" placeholder="+7...">
           <label>Автомобиль</label>
           <input type="text" name="car" value="<%= user.car || '' %>">
           <button type="submit" class="btn btn-solid">Сохранить</button>

@@ -10,6 +10,9 @@
     <% if (typeof error !== 'undefined' && error) { %>
       <p class="auth-error"><%= error %></p>
     <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <p class="success-msg"><%= success %></p>
+    <% } %>
     <div class="auth-form-wrap" id="login-form">
       <form action="/login<%= typeof redirect !== 'undefined' && redirect ? '?redirect=' + encodeURIComponent(redirect) : '' %>" method="post" class="auth-form">
         <% if (typeof redirect !== 'undefined' && redirect) { %>

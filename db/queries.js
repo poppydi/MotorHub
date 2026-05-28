@@ -24,12 +24,14 @@ function getProducts(filters = {}) {
     const term = '%' + String(search).trim() + '%';
     params.push(term, term, term);
   }
-  sql += ' ORDER BY ' + (
-    sort === 'price_asc' ? 'p.price_cents ASC'
-      : sort === 'price_desc' ? 'p.price_cents DESC'
+  const sortSql = (
+    sort === 'price_asc' ? 'p.price_cents ASC, p.name ASC'
+      : sort === 'price_desc' ? 'p.price_cents DESC, p.name ASC'
         : sort === 'id_desc' ? 'p.id DESC'
           : 'p.name ASC'
   );
+  // Товары без остатка всегда уходим в конец выдачи.
+  sql += ' ORDER BY CASE WHEN p.stock > 0 THEN 0 ELSE 1 END ASC, ' + sortSql;
   const rows = getDb().prepare(sql).all(...params);
   return rows.map(p => ({
     id: p.id, categoryId: p.category_id, categoryName: p.category_name, categorySlug: p.category_slug,

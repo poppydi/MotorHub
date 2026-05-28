@@ -69,9 +69,10 @@
         <input type="text" id="checkoutName" value="<%= user ? user.name : '' %>" placeholder="Введите имя" required>
       </label>
       <label>Номер телефона
-        <input type="text" id="checkoutPhone" value="<%= user ? user.phone : '' %>" placeholder="+7..." required>
+        <input type="tel" id="checkoutPhone" value="<%= user ? user.phone : '' %>" placeholder="+7..." required maxlength="18" inputmode="tel">
       </label>
     </div>
+    <p class="auth-error checkout-error" id="checkoutErrorMsg" hidden></p>
     <div class="checkout-summary">
       <p>Номер заказа: <strong>будет присвоен после подтверждения</strong></p>
       <p>Дата и время: <strong id="previewDateTime"></strong></p>
@@ -108,8 +109,17 @@
     var phoneHiddenInput = document.getElementById('phoneInput');
     var previewDateTime = document.getElementById('previewDateTime');
     var checkoutForm = document.getElementById('checkoutForm');
+    var checkoutErrorMsg = document.getElementById('checkoutErrorMsg');
+    function isValidPhone(value) {
+      var digits = (value || '').replace(/\D/g, '');
+      return digits.length >= 10 && digits.length <= 15;
+    }
     openBtn.addEventListener('click', function () {
       previewDateTime.textContent = new Date().toLocaleString('ru-RU');
+      if (checkoutErrorMsg) {
+        checkoutErrorMsg.hidden = true;
+        checkoutErrorMsg.textContent = '';
+      }
       modal.hidden = false;
     });
     closeBtn.addEventListener('click', function () { modal.hidden = true; });
@@ -117,7 +127,25 @@
       if (e.target === modal) modal.hidden = true;
     });
     confirmBtn.addEventListener('click', function () {
-      if (!nameInput.value.trim() || !phoneLocalInput.value.trim()) return;
+      if (!nameInput.value.trim()) return;
+      if (!phoneLocalInput.value.trim()) {
+        if (checkoutErrorMsg) {
+          checkoutErrorMsg.textContent = 'Введите номер телефона для подтверждения заказа.';
+          checkoutErrorMsg.hidden = false;
+        }
+        return;
+      }
+      if (!isValidPhone(phoneLocalInput.value.trim())) {
+        if (checkoutErrorMsg) {
+          checkoutErrorMsg.textContent = 'Введите корректный номер телефона.';
+          checkoutErrorMsg.hidden = false;
+        }
+        return;
+      }
+      if (checkoutErrorMsg) {
+        checkoutErrorMsg.hidden = true;
+        checkoutErrorMsg.textContent = '';
+      }
       nameHiddenInput.value = nameInput.value.trim();
       phoneHiddenInput.value = phoneLocalInput.value.trim();
       checkoutForm.submit();

@@ -18,7 +18,7 @@ const {
   formatPrice,
 } = require('./db/queries');
 const { hashPassword, comparePassword, requireAuth, requireRole, requireStaff } = require('./lib/auth');
-const { LIMITS, clampStr, clampInt } = require('./lib/validation');
+const { LIMITS, clampStr, clampInt, normalizePhone, isValidPhone } = require('./lib/validation');
 const { paginateCatalog, CATALOG_PER_PAGE } = require('./lib/catalog');
 
 initDb();
@@ -140,7 +140,7 @@ function renderCatalogPage(req, res, { categorySlug, template, faqSection }) {
   const faq = getFaq(faqSection);
   const qs = [];
   if (search) qs.push('search=' + encodeURIComponent(search));
-  if (sort && sort !== 'name') qs.push('sort=' + encodeURIComponent(sort));
+  if (sort && sort !== 'newest') qs.push('sort=' + encodeURIComponent(sort));
   const queryPrefix = qs.length ? qs.join('&') + '&' : '';
   res.render(template, {
     categories,
@@ -176,7 +176,13 @@ app.get('/cart', (req, res) => {
     user,
     lastOrderId: clampInt(req.query.order, 0, 999999999),
     lastOrderAt: req.query.at ? String(req.query.at) : '',
-    cartError: req.query.error === 'stock' ? 'Недостаточно товара на складе. Обновите корзину.' : null,
+    cartError: req.query.error === 'stock'
+      ? 'Недостаточно товара на складе. Обновите корзину.'
+      : req.query.error === 'phone_required'
+        ? 'Введите номер телефона для подтверждения заказа.'
+        : req.query.error === 'phone_invalid'
+          ? 'Введите корректный номер телефона.'
+          : null,
   });
 });
 
@@ -236,10 +242,12 @@ app.post('/register', (req, res) => {
     return res.render('login', { error: 'Email уже зарегистрирован', success: null, categories, redirect });
   }
   createUser({ email, passwordHash: hashPassword(password), name, surname, role: 'customer' });
-  const user = getUserByEmail(email);
-  req.session.userId = user.id;
-  req.session.userName = user.name;
-  redirectAfterAuth(req, res, user);
+  return res.render('login', {
+    error: null,
+    success: 'Регистрация успешна. Теперь войдите в аккаунт.',
+    categories,
+    redirect: ''
+  });
 });
 
 app.post('/logout', (req, res) => {
@@ -263,9 +271,10 @@ app.get('/account', requireAuth, (req, res) => {
 app.post('/account', requireAuth, (req, res) => {
   const name = clampStr(req.body.name, LIMITS.name.max);
   const surname = clampStr(req.body.surname, LIMITS.surname.max);
-  const phone = clampStr(req.body.phone, LIMITS.phone.max);
+  const phone = normalizePhone(clampStr(req.body.phone, LIMITS.phone.max));
   const car = clampStr(req.body.car, LIMITS.car.max);
   if (!name) return res.redirect('/account?error=name');
+  if (phone && !isValidPhone(phone)) return res.redirect('/account?error=Введите%20корректный%20номер%20телефона');
   const existingUser = getUserById(req.session.userId);
   updateUser(req.session.userId, {
     name,
@@ -321,7 +330,9 @@ app.post('/cart/checkout', requireAuth, (req, res) => {
   if (items.length === 0) return res.redirect('/cart');
   const user = getUserById(req.session.userId);
   const recipientName = clampStr(req.body.recipient_name || user?.name || '', LIMITS.name.max);
-  const phone = clampStr(req.body.phone || user?.phone || '', LIMITS.phone.max);
+  const phone = normalizePhone(clampStr(req.body.phone || user?.phone || '', LIMITS.phone.max));
+  if (!phone) return res.redirect('/cart?error=phone_required');
+  if (!isValidPhone(phone)) return res.redirect('/cart?error=phone_invalid');
   if (recipientName || phone) {
     updateUser(req.session.userId, {
       name: recipientName || user?.name || '',
@@ -378,10 +389,11 @@ app.get('/api/me', requireAuth, (req, res) => {
 app.put('/api/me', requireAuth, (req, res) => {
   const name = clampStr(req.body.name, LIMITS.name.max);
   const surname = clampStr(req.body.surname, LIMITS.surname.max);
-  const phone = clampStr(req.body.phone, LIMITS.phone.max);
+  const phone = normalizePhone(clampStr(req.body.phone, LIMITS.phone.max));
   const car = clampStr(req.body.car, LIMITS.car.max);
   const deliveryAddress = clampStr(req.body.delivery_address, LIMITS.deliveryAddress.max);
   if (!name) return res.status(400).json({ error: 'Имя обязательно' });
+  if (phone && !isValidPhone(phone)) return res.status(400).json({ error: 'Введите корректный номер телефона' });
   updateUser(req.session.userId, { name, surname, phone, car, deliveryAddress });
   res.json({ ok: true });
 });
