@@ -13,24 +13,20 @@ function getCategories() {
   return getDb().prepare("SELECT id, name, slug FROM categories WHERE slug IN ('parts', 'oils') ORDER BY sort_order").all();
 }
 
-/** Частичный поиск по символам (подстрока), без учёта регистра. */
-function appendProductSearch(sql, params, search) {
+function productSearchHaystack(row) {
+  const description = (row.description || '').trim() || getDefaultProductDescription(row.category_slug);
+  return [row.name, row.article_number || '', description].join(' ').toLowerCase();
+}
+
+function matchesProductSearch(row, search) {
   const tokens = String(search || '')
     .trim()
     .toLowerCase()
     .split(/\s+/)
-    .map((t) => t.replace(/[%_]/g, ''))
     .filter((t) => t.length > 0);
-  if (!tokens.length) return sql;
-  const chunks = tokens.map(() => (
-    '(LOWER(p.name) LIKE ? OR LOWER(COALESCE(p.article_number, \'\')) LIKE ? OR LOWER(COALESCE(p.description, \'\')) LIKE ?)'
-  ));
-  sql += ' AND (' + chunks.join(' AND ') + ')';
-  for (const token of tokens) {
-    const term = '%' + token + '%';
-    params.push(term, term, term);
-  }
-  return sql;
+  if (!tokens.length) return true;
+  const haystack = productSearchHaystack(row);
+  return tokens.every((token) => haystack.includes(token));
 }
 
 function getProducts(filters = {}) {
@@ -39,7 +35,6 @@ function getProducts(filters = {}) {
   const params = [];
   if (categoryId) { sql += ' AND p.category_id = ?'; params.push(categoryId); }
   if (categorySlug) { sql += ' AND c.slug = ?'; params.push(categorySlug); }
-  sql = appendProductSearch(sql, params, search);
   const sortSql = (
     sort === 'price_asc' ? 'p.price_cents ASC, p.name ASC'
       : sort === 'price_desc' ? 'p.price_cents DESC, p.name ASC'
@@ -48,7 +43,10 @@ function getProducts(filters = {}) {
   );
   // Товары без остатка всегда уходим в конец выдачи.
   sql += ' ORDER BY CASE WHEN p.stock > 0 THEN 0 ELSE 1 END ASC, ' + sortSql;
-  const rows = getDb().prepare(sql).all(...params);
+  let rows = getDb().prepare(sql).all(...params);
+  if (search && String(search).trim()) {
+    rows = rows.filter((row) => matchesProductSearch(row, search));
+  }
   return rows.map(p => ({
     id: p.id, categoryId: p.category_id, categoryName: p.category_name, categorySlug: p.category_slug,
     name: p.name, description: (p.description || '').trim() || getDefaultProductDescription(p.category_slug), articleNumber: p.article_number || '',

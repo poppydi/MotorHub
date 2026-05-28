@@ -6,20 +6,6 @@ document.querySelectorAll('.sort-select[data-current-sort]').forEach(function(se
     if (this.form) this.form.submit();
   });
 });
-document.querySelectorAll('.catalog-page .search-filters').forEach(function(form) {
-  var input = form.querySelector('.search-input');
-  if (!input || input.dataset.liveSearch === '1') return;
-  input.dataset.liveSearch = '1';
-  var timer;
-  input.addEventListener('input', function() {
-    clearTimeout(timer);
-    timer = setTimeout(function() {
-      var pageInput = form.querySelector('input[name="page"]');
-      if (pageInput) pageInput.value = '1';
-      form.submit();
-    }, 350);
-  });
-});
 document.querySelectorAll('[data-accordion]').forEach(function(btn){
   btn.addEventListener('click',function(){
     var item=this.closest('.acc-item');
