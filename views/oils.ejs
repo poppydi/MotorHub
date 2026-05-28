@@ -149,8 +149,9 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        var badge = document.querySelector('.cart-count');
-        if (badge && data && typeof data.cartCount !== 'undefined') badge.textContent = data.cartCount;
+        if (data && typeof data.cartCount !== 'undefined' && typeof window.updateCartCount === 'function') {
+          window.updateCartCount(data.cartCount);
+        }
         closeModal();
       })
       .catch(function () { closeModal(); });

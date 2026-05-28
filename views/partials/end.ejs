@@ -1,5 +1,15 @@
 <button type="button" class="scroll-top" id="scrollTopBtn" aria-label="Наверх" title="Наверх" hidden>↑</button>
 <script>
+window.updateCartCount = function (count) {
+  var n = parseInt(count, 10) || 0;
+  document.querySelectorAll('.cart-count').forEach(function (el) {
+    el.textContent = String(n);
+    el.setAttribute('data-count', String(n));
+  });
+};
+document.querySelectorAll('.cart-count').forEach(function (el) {
+  el.setAttribute('data-count', el.textContent.trim() || '0');
+});
 (function () {
   var btn = document.getElementById('scrollTopBtn');
   if (!btn) return;
