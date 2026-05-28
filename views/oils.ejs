@@ -6,13 +6,13 @@
     <form class="search-filters" method="get" action="/oils">
       <input type="hidden" name="page" value="1">
       <input type="text" name="search" placeholder="5W-30" value="<%= typeof search !== 'undefined' ? search : '' %>" class="search-input">
-      <select name="sort" class="sort-select">
-        <option value="newest" <%= (typeof sort === 'undefined' || sort === 'newest') ? 'selected' : '' %>>Сначала новые</option>
-        <option value="name" <%= (typeof sort === 'name') ? 'selected' : '' %>>По названию</option>
-        <option value="price_asc" <%= (typeof sort === 'price_asc') ? 'selected' : '' %>>Сначала дешевле</option>
-        <option value="price_desc" <%= (typeof sort === 'price_desc') ? 'selected' : '' %>>Сначала дороже</option>
+      <select name="sort" class="sort-select" data-current-sort="<%= currentSort %>">
+        <option value="newest" <%= currentSort === 'newest' ? 'selected' : '' %>>Сначала новые</option>
+        <option value="name" <%= currentSort === 'name' ? 'selected' : '' %>>По названию</option>
+        <option value="price_asc" <%= currentSort === 'price_asc' ? 'selected' : '' %>>Сначала дешевле</option>
+        <option value="price_desc" <%= currentSort === 'price_desc' ? 'selected' : '' %>>Сначала дороже</option>
       </select>
-      <button type="submit" class="btn btn-solid">Найти</button>
+      <button type="submit" class="btn btn-solid catalog-find-btn">Найти</button>
     </form>
     <div class="product-grid">
       <% if (products && products.length) { %>

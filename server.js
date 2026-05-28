@@ -148,7 +148,7 @@ function renderCatalogPage(req, res, { categorySlug, template, faqSection }) {
     allProducts,
     faq,
     search,
-    sort,
+    currentSort: sort,
     page,
     totalPages,
     total,

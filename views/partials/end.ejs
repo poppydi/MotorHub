@@ -1,4 +1,11 @@
 <script>
+document.querySelectorAll('.sort-select[data-current-sort]').forEach(function(sel) {
+  var current = sel.getAttribute('data-current-sort');
+  if (current) sel.value = current;
+  sel.addEventListener('change', function() {
+    if (this.form) this.form.submit();
+  });
+});
 document.querySelectorAll('[data-accordion]').forEach(function(btn){
   btn.addEventListener('click',function(){
     var item=this.closest('.acc-item');
