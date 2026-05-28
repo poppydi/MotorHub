@@ -13,17 +13,33 @@ function getCategories() {
   return getDb().prepare("SELECT id, name, slug FROM categories WHERE slug IN ('parts', 'oils') ORDER BY sort_order").all();
 }
 
+/** Частичный поиск по символам (подстрока), без учёта регистра. */
+function appendProductSearch(sql, params, search) {
+  const tokens = String(search || '')
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.replace(/[%_]/g, ''))
+    .filter((t) => t.length > 0);
+  if (!tokens.length) return sql;
+  const chunks = tokens.map(() => (
+    '(LOWER(p.name) LIKE ? OR LOWER(COALESCE(p.article_number, \'\')) LIKE ? OR LOWER(COALESCE(p.description, \'\')) LIKE ?)'
+  ));
+  sql += ' AND (' + chunks.join(' AND ') + ')';
+  for (const token of tokens) {
+    const term = '%' + token + '%';
+    params.push(term, term, term);
+  }
+  return sql;
+}
+
 function getProducts(filters = {}) {
   const { categoryId, categorySlug, search, sort = 'name' } = filters;
   let sql = `SELECT p.id, p.category_id, p.name, p.description, p.article_number, p.price_cents, p.stock, p.image_url, p.is_new, c.name AS category_name, c.slug AS category_slug FROM products p JOIN categories c ON p.category_id = c.id WHERE 1=1`;
   const params = [];
   if (categoryId) { sql += ' AND p.category_id = ?'; params.push(categoryId); }
   if (categorySlug) { sql += ' AND c.slug = ?'; params.push(categorySlug); }
-  if (search && String(search).trim()) {
-    sql += ' AND (p.name LIKE ? OR p.article_number LIKE ? OR p.description LIKE ?)';
-    const term = '%' + String(search).trim() + '%';
-    params.push(term, term, term);
-  }
+  sql = appendProductSearch(sql, params, search);
   const sortSql = (
     sort === 'price_asc' ? 'p.price_cents ASC, p.name ASC'
       : sort === 'price_desc' ? 'p.price_cents DESC, p.name ASC'
