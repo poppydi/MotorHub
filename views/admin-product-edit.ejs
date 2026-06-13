@@ -29,7 +29,7 @@
         <% if (product.imageUrl) { %>
           <div style="grid-column:1/-1">
             <span>Текущее фото:</span>
-            <img src="<%= product.imageUrl %>" alt="" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:8px">
+            <img src="<%= product.imageUrl %>" alt="" loading="lazy" decoding="async" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:8px">
           </div>
         <% } %>
         <label style="grid-column:1/-1"><input type="checkbox" name="is_new" <%= product.isNew ? 'checked' : '' %>> Новинка</label>

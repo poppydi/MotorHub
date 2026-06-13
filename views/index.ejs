@@ -28,7 +28,7 @@
         <% if (feats.length) { %>
           <% feats.forEach(function(p) { %>
             <a href="<%= p.categorySlug === 'oils' ? '/oils' : '/parts' %>#p<%= p.id %>" class="catalog-preview-item">
-              <% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>"><% } else { %><span class="no-img">—</span><% } %>
+              <% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>" loading="lazy" decoding="async"><% } else { %><span class="no-img">—</span><% } %>
             </a>
           <% }); %>
         <% } else { %>

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "init-db": "node db/init.js"
+    "init-db": "node db/init.js",
+    "cache-product-images": "node db/cache-external-images.js"
   },
   "engines": {
     "node": ">=18"
@@ -23,6 +24,7 @@
     "method-override": "^3.0.0",
     "multer": "^2.1.1",
     "node.js": "^0.0.1-security",
+    "sharp": "^0.35.1",
     "sqlite3": "^6.0.1"
   }
 }

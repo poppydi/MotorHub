@@ -20,6 +20,7 @@ const {
 const { hashPassword, comparePassword, requireAuth, requireRole, requireStaff } = require('./lib/auth');
 const { LIMITS, clampStr, clampInt, normalizePhone, isValidPhone } = require('./lib/validation');
 const { paginateCatalog, CATALOG_PER_PAGE } = require('./lib/catalog');
+const { optimizeUploadedImage } = require('./lib/images');
 
 initDb();
 
@@ -64,7 +65,15 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    if (filePath.includes(`${path.sep}uploads${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (isProduction) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    }
+  },
+}));
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'autonix-secret-change-in-production',
@@ -450,7 +459,7 @@ app.post('/admin/users/:id/password', requireAuth, requireRole('admin'), (req, r
   res.redirect('/admin?success=password');
 });
 
-app.post('/admin/products', requireAuth, requireStaff, upload.single('image'), (req, res) => {
+app.post('/admin/products', requireAuth, requireStaff, upload.single('image'), async (req, res) => {
   const categoryId = parseInt(req.body.category_id, 10);
   const name = clampStr(req.body.name, LIMITS.productName.max);
   const description = clampStr(req.body.description || '', LIMITS.productDescription.max);
@@ -461,7 +470,14 @@ app.post('/admin/products', requireAuth, requireStaff, upload.single('image'), (
   const stock = parseInt(req.body.stock, 10) || 0;
   const isNew = !!req.body.is_new;
   let imageUrl = clampStr(req.body.image_url || '', LIMITS.imageUrl.max);
-  if (req.file) imageUrl = '/uploads/' + req.file.filename;
+  if (req.file) {
+    try {
+      imageUrl = '/uploads/' + await optimizeUploadedImage(req.file.path);
+    } catch (err) {
+      console.error('Image optimize failed', err);
+      imageUrl = '/uploads/' + req.file.filename;
+    }
+  }
   if (!categoryId || !name || priceCents < 0) return res.redirect('/admin?error=product');
   insertProduct({ categoryId, name, description, articleNumber, priceCents, stock, imageUrl, isNew });
   res.redirect('/admin?success=product#products');
@@ -486,7 +502,7 @@ app.post('/admin/delete-order/:id', requireAuth, requireStaff, (req, res) => {
   res.redirect('/admin?success=order_deleted');
 });
 
-app.post('/admin/products/:id', requireAuth, requireStaff, upload.single('image'), (req, res) => {
+app.post('/admin/products/:id', requireAuth, requireStaff, upload.single('image'), async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const categoryId = parseInt(req.body.category_id, 10);
   const name = clampStr(req.body.name, LIMITS.productName.max);
@@ -498,7 +514,14 @@ app.post('/admin/products/:id', requireAuth, requireStaff, upload.single('image'
   const stock = parseInt(req.body.stock, 10) || 0;
   const isNew = !!req.body.is_new;
   let imageUrl = clampStr(req.body.image_url || '', LIMITS.imageUrl.max);
-  if (req.file) imageUrl = '/uploads/' + req.file.filename;
+  if (req.file) {
+    try {
+      imageUrl = '/uploads/' + await optimizeUploadedImage(req.file.path);
+    } catch (err) {
+      console.error('Image optimize failed', err);
+      imageUrl = '/uploads/' + req.file.filename;
+    }
+  }
   if (!id || !categoryId || !name || priceCents < 0) return res.redirect('/admin');
   const product = getProductById(id);
   if (product) {

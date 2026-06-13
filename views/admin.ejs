@@ -107,7 +107,7 @@
               <% products.forEach(function(p) { %>
                 <tr>
                   <td class="col-id" data-label="ID"><%= p.id %></td>
-                  <td class="admin-thumb col-thumb" data-label="Фото"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt=""><% } else { %><span class="no-img">—</span><% } %></td>
+                  <td class="admin-thumb col-thumb" data-label="Фото"><% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="" loading="lazy" decoding="async"><% } else { %><span class="no-img">—</span><% } %></td>
                   <td class="col-name" data-label="Название"><%= p.name %></td>
                   <td class="col-article" data-label="Артикул"><%= p.articleNumber || '' %></td>
                   <td class="col-price" data-label="Цена"><%= p.price %></td>

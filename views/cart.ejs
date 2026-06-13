@@ -12,7 +12,7 @@
           <% items.forEach(function(it) { %>
             <div class="cart-row">
               <div class="cart-img">
-                <% if (it.imageUrl) { %><img src="<%= it.imageUrl %>" alt="<%= it.name %>"><% } else { %><span class="no-img">—</span><% } %>
+                <% if (it.imageUrl) { %><img src="<%= it.imageUrl %>" alt="<%= it.name %>" loading="lazy" decoding="async"><% } else { %><span class="no-img">—</span><% } %>
               </div>
               <div class="cart-item-info">
                 <div class="cart-name"><%= it.name %></div>
