@@ -108,7 +108,9 @@
     modalPrice.textContent = d.productPrice || '';
     modalDesc.textContent = d.productDescription || 'Описание отсутствует';
     modalStock.textContent = String(currentStock);
-    modalImageWrap.innerHTML = d.productImage ? '<img src="' + d.productImage + '" alt="' + (d.productName || '') + '" decoding="async">' : '<span class="no-image">—</span>';
+    modalImageWrap.innerHTML = d.productImage
+      ? '<img src="' + d.productImage + '" alt="' + (d.productName || '') + '" decoding="async" onerror="this.onerror=null;this.src=\'/img/product-placeholder.svg\'">'
+      : '<span class="no-image">—</span>';
     modal.hidden = false;
   }
   var products = <%- JSON.stringify(typeof allProducts !== 'undefined' ? allProducts : (products || [])).replace(/</g, '\\u003c') %>;

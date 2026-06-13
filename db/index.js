@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const { runSchema } = require('./schema');
+const { runMigrations } = require('./migrations');
 
 const dbPath = path.join(__dirname, 'autonix.db');
 let db = null;
@@ -16,6 +17,7 @@ function getDb() {
 function initDb() {
   const database = getDb();
   runSchema(database);
+  runMigrations(database);
   return database;
 }
 

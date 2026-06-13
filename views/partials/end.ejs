@@ -38,6 +38,13 @@ document.querySelectorAll('[data-accordion]').forEach(function(btn){
     if(!wasOpen) item.classList.add('open');
   });
 });
+document.querySelectorAll('.product-image img, .catalog-preview-item img, .cart-img img, .admin-thumb img').forEach(function(img) {
+  img.addEventListener('error', function onImgError() {
+    img.removeEventListener('error', onImgError);
+    if (img.src.indexOf('/img/product-placeholder.svg') !== -1) return;
+    img.src = '/img/product-placeholder.svg';
+  });
+});
 </script>
 </body>
 </html>
