@@ -371,6 +371,17 @@ app.post('/cart/checkout', requireAuth, (req, res) => {
   res.redirect('/cart?order=' + orderId + '&at=' + encodeURIComponent(new Date().toLocaleString('ru-RU')));
 });
 
+app.get('/api/health', (req, res) => {
+  const faq = getDb().prepare("SELECT question FROM faq WHERE section = 'parts' ORDER BY sort_order").all();
+  const hasVin = faq.some((f) => /VIN/i.test(f.question));
+  res.json({
+    ok: true,
+    build: '2026-06-14',
+    faqParts: faq.map((f) => f.question),
+    hasVinQuestion: hasVin,
+  });
+});
+
 app.get('/api/categories', (req, res) => {
   res.json(getCategories());
 });
@@ -548,5 +559,5 @@ app.use((req, res) => res.status(404).render('404', { message: 'Страница
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`МоторХаб: сервер запущен на http://localhost:${PORT}`);
+  console.log(`МоторХаб: сервер запущен на http://localhost:${PORT} (build 2026-06-14)`);
 });
