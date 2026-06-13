@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "init-db": "node db/init.js",
-    "cache-product-images": "node db/cache-external-images.js"
+    "cache-product-images": "node db/cache-external-images.js",
+    "apply-site-fixes": "node db/cache-external-images.js"
   },
   "engines": {
     "node": ">=18"
